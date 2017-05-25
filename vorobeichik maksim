@@ -1,0 +1,513 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <time.h>
+#include <math.h>
+
+double epsilon = 0.0000000001;
+int vis_count = 10;
+
+int q_srav;
+int q_perem;
+
+int results[4][2];
+double times[4];
+
+struct data
+{
+  double a;
+  int b;
+};
+
+struct tree
+{
+  data b;
+  data a;
+  tree *left;
+  tree *right;
+};
+
+char* to_date(int tt)
+{
+  struct tm * timeinfo;
+  time_t t = tt;
+  timeinfo = localtime(&t);
+  return asctime(timeinfo);
+}
+
+void print(data* csv, size_t n) {
+
+
+  for (int i = 0; i < n; i++)
+  {
+
+    printf("%.15lf %d - %s", csv[i].a, csv[i].b, to_date(csv[i].b));
+  }
+  printf("\n");
+}
+
+void fael(char *name, data* arr, int n) {
+  FILE* fp = fopen(name, "w");
+  for (int i = 0; i < n; i++)
+  {
+    fprintf(fp, "%lf %s\n", arr[i].a, to_date(arr[i].b));
+  }
+}
+
+int interpolating(data* ann, int arraySize, int keyOfSearch)  //инорпрец поиск
+{
+  int low = 0, srav = 0, perem = 0;
+  int high = arraySize - 1;
+  int mid;
+  clock_t start, end;
+  start = clock()
+    ;
+  while (ann[low].b < keyOfSearch && ann[high].b >= keyOfSearch)
+  {
+    mid = low + ((double)(keyOfSearch - ann[low].b) / (double)(ann[high].b - ann[low].b))*(high - low);
+    //mid = low + 0.5*(high - low);
+    if (ann[mid].b < keyOfSearch) {
+      srav++;
+      low = mid + 1;
+    }
+    else if (ann[mid].b > keyOfSearch)
+    {
+      high = mid - 1;
+      srav++;
+    }
+    else
+    {
+      end = clock();
+      printf("do for:");
+      printf("%.4f sec\n", ((double)end - start) / ((double)CLOCKS_PER_SEC));
+      printf("sravneni: %d \n", srav);
+      printf("perem: %d \n", perem);
+      printf("Find: %lf - %d\n", ann[mid].a, ann[mid].b);
+      return mid;
+    }
+  }
+
+  if (ann[low].b == keyOfSearch) {
+    srav++;
+    end = clock();
+    printf("do for:");
+    printf("%.4f se\n", ((double)end - start) / ((double)CLOCKS_PER_SEC));
+    printf("sravneni: %d \n", srav);
+
+    printf("Find: %lf - %d\n", ann[low].a, ann[low].b);
+    return low;
+  }
+  else
+  {
+    end = clock();
+    printf("do for:");
+    printf("%.4f sec\n", ((double)end - start) / ((double)CLOCKS_PER_SEC));
+    printf("sravneni: %d \n", srav);
+
+    printf("Not found\n");
+    return -1;
+  }
+}
+
+
+int linei(data* k, int n, int key) //Линейный поиск//
+{
+  int i, srav = 0, perem = 0;
+  clock_t start, end;
+  start = clock();
+  for (i = 0; i < n; i++)
+  {
+    srav++;
+    if (k[i].b == key) {
+      end = clock();
+      printf("do it for:");
+      printf("%.4f sec\n", ((double)end - start) / ((double)CLOCKS_PER_SEC));
+      printf("sravnenia: %d \n", srav);
+
+      printf("Find: %lf - %d\n", k[i].a, k[i].b);
+      return i;
+    }
+  }
+  end = clock();
+  printf("do for:");
+  printf("%.4f sec\n", ((double)end - start) / ((double)CLOCKS_PER_SEC));
+  printf("sravnen: %d \n", srav);
+
+  return -1;
+}
+
+
+
+
+
+
+
+
+
+///////////////////////////////////////////
+
+//дерево
+
+struct node//Для дерева//
+{
+  double a;
+  int key;
+  struct node *left, *right;
+};
+
+struct node *newNode(int item, double z)//Новый узел для древа//
+{
+  struct node *temp = (struct node *)malloc(sizeof(struct node));
+  struct node *fell = (struct node *)malloc(sizeof(struct node));
+  temp->key = item;
+  temp->a = z;
+  temp->left = temp->right = NULL;
+  return temp;
+}
+
+void inorder(FILE* stream, struct node *root, int* i)//Вывод из дерева//
+{
+  if (root != NULL)
+  {
+    inorder(stream, root->left, i);
+
+    if (*i < vis_count || stream != stdout) {
+      fprintf(stream, "%.15lf,%d -%s ",  root->a, root->key, to_date(root->key)  );
+      (*i)++;
+    }
+
+    inorder(stream, root->right, i);
+
+  }
+}
+
+
+
+
+void treeserch(struct node *root,  int f, int* iz)
+{
+  if (root != NULL) {
+    if (f == root->key) {
+      printf("nachel %d\n", f);
+      printf("srav %d\n", *iz);
+    }
+    else {
+      (*iz)++;
+      if (f < root->key)
+        return treeserch(root->left, f, iz);
+      else
+        return treeserch(root->right, f, iz);
+    }
+  }
+}
+/*/void derevo(struct node *root,char )//Вывод из дерева//
+{
+if (root != NULL)
+{
+
+
+inorder(root->left);
+printf("%.15lf,%d -%s \n",
+root->a, root->key,   to_date(root->key)
+);
+inorder(root->right);
+
+}
+}
+/*/
+
+
+
+
+
+struct node* search(struct node* root, int key)//Поиск по дереву//
+{
+  if (root == NULL || root->key == key)
+    return root;
+
+  if (root->key < key)
+    return search(root->right, key);
+
+  return search(root->left, key);
+};
+
+struct node* insert(struct node* node, int key, double snaf)//Древо//
+{
+  if (node == NULL) return newNode(key, snaf);
+
+  if (key < node->key)
+    node->left = insert(node->left, key, snaf);
+  else if (key > node->key)
+    node->right = insert(node->right, key, snaf);
+};
+
+void insert1(struct node* node, int key, double snaf)//Древо//
+{
+  q_srav++;
+  if (key < node->key)
+  {
+    if (node->left) insert1(node->left, key, snaf);
+    else node->left = newNode(key, snaf);
+  }
+  else
+  {
+    if (node->right) insert1(node->right, key, snaf);
+    else node->right = newNode(key, snaf);
+  }
+};
+
+
+void tree_sort(struct node* node, data* arr, int* i)
+{
+  if (node->left != NULL) tree_sort(node->left, arr, i);
+  arr[*i].b = node->key;
+  (*i)++;
+  if (node->right != NULL) tree_sort(node->right, arr, i);
+}
+
+
+
+//////////////////////////////////////////////
+
+
+
+
+
+//пузырёк
+void buble_sort(data* arr, size_t n) {
+  printf("Bubble sort\n");
+  size_t i, j;
+  data z;
+  int srav = 0, perem = 0;
+
+  for (i = 0; i < n - 1; i++)
+    for (j = 0; j < n - 1; j++) {
+      srav++;
+      if (arr[j].b > arr[j + 1].b) {
+        z = arr[j];
+
+        arr[j] = arr[j + 1];
+        arr[j + 1] = z;
+        perem = perem + 2;
+      }
+    }
+
+  printf("sravnenia: %d \n", srav);
+  printf("perem: %d \n", perem);
+  results[0][0] = srav;
+  results[0][1] = perem;
+}
+
+//вставками
+void insert_sort(data* arr, size_t n) {
+  printf("Insert sort\n");
+  size_t i, j;
+  data z;
+  int srav = 0, perem = 0;
+  for (i = 0; i<n; i++) {
+    j = i;
+    while (j>0 && (arr[j - 1].b > arr[j].b)) {
+      z = arr[j];
+      arr[j] = arr[j - 1];
+      arr[j - 1] = z;
+      j--;
+      srav++;
+      perem++;
+    }
+    srav++;
+   // perem++;
+  }
+  printf("sravnenia: %d \n", srav);
+  printf("perem: %d \n", perem);
+  results[1][0] = srav;
+  results[1][1] = perem;
+}
+
+
+//быстрая сортировка
+void qs(data* s_arr, int first, int last)
+{
+  int i = first, j = last, x = s_arr[(first + last) / 2].b;
+  data z;
+  do {
+    while (s_arr[i].b < x) { q_srav++; i++; }
+    while (s_arr[j].b > x) { q_srav++; j--; }
+
+    if (i <= j) {
+      q_srav++;
+      if (s_arr[i].b > s_arr[j].b) //swap(&s_arr[i], &s_arr[j]);
+      {
+        q_perem++;
+        z = s_arr[j];
+        s_arr[j] = s_arr[i];
+        s_arr[i] = z;
+      }
+      i++;
+      j--;
+    }
+  } while (i <= j);
+
+  if (i < last)
+    qs(s_arr, i, last);
+  if (first < j)
+    qs(s_arr, first, j);
+}
+
+
+int main() {
+  int *iz = 0;
+  double t;
+  int bang = -1;
+  FILE *fp;
+  data *csv;
+  char name[255];
+  int n, i, k;
+  double m;
+  struct node *root = NULL;
+  printf("file name:\n");
+
+  scanf("%s", &name);
+ // strcpy(name, "input.csv");
+  fp = fopen(name, "r");
+  while (fp == NULL) {
+    printf("Try again.\n");
+    scanf("%s", &name);
+    fp = fopen(name, "r");
+  }
+
+  printf("skolko elem:\n");
+  scanf("%d", &n);
+
+  //пузырёк
+  csv = (data*)malloc(n * sizeof(data));
+  char filename[256];
+  strcpy(filename, "output_0.txt");
+  float tt[4];
+  //////////////////////////////////////////////////////////////////
+  for (int s = 0; s < 4; s++)
+  {
+    rewind(fp); // Эта штука скидывает воображаемй курсор на начало файла
+    for (i = 0; i < n; i++)
+    {
+      fscanf(fp, "%lf,%d", &csv[i].a, &csv[i].b);
+      //printf("%lf %d\n", csv[i].a, csv[i].b);
+    }
+
+    printf("=============================\n");
+    print(csv, vis_count);
+    clock_t start, end;
+    start = clock();
+    // clock_t start = clock();
+    switch (s)
+    {
+    case 0:  buble_sort(csv, n); break;
+    case 1:  insert_sort(csv, n); break;
+    case 2:  printf("q sort\n");
+      q_srav = q_perem = 0;
+      qs(csv, 0, n - 1);
+      printf("sravnenia: %d \n", q_srav);
+      printf("perem: %d \n", q_perem);
+      results[2][0] = q_srav;
+      results[2][1] = q_perem;
+      break;
+    case 3:
+      root = insert(NULL, csv[0].b, csv[0].a);
+
+      q_srav = q_perem = 0;
+      for (i = 1; i < n; i++) {
+        insert1(root, csv[i].b, csv[i].a);
+      }
+
+      printf("sravnenia: %d \n", q_srav);
+      printf("perem: %d \n", q_perem);
+      results[3][0] = q_srav;
+      results[3][1] = q_perem;
+
+      printf("Tree:\n");
+      i = 0;
+      inorder(stdout,root, &i);
+      // tree_sort(root, csv, 0);
+      break;
+    }
+    if (s != 3) {
+      filename[7] = (char)s + '0';
+      fael(filename, csv, n);
+    }
+    else {
+      //filename[7] = (char)s + '0';derevo(root,filename);
+      filename[7] = (char)s + '0';
+      FILE* fp = fopen(filename, "w");
+      //fael(filename, csv, n);
+      i = 0;
+      inorder(fp, root, &i);
+      fclose(fp);
+    }
+    //clock_t stop = clock();
+    end = clock();
+    //tt[s] = (float)(stop - start) / CLOCKS_PER_SEC;
+    //printf("Time: %.20f\n", tt[s]);
+    printf("The above code block was executed in %.8f second(s)\n", ((double)end - start) / ((double)CLOCKS_PER_SEC));
+    times[s] = ((double)end - start) / ((double)CLOCKS_PER_SEC);
+    if (s != 3) print(csv, vis_count);
+    printf("=============================\n");
+
+  }
+
+  // free(csv);
+  qs(csv, 0, n - 1);
+  // print(csv, 10);
+  for (int s = 0; s < 3; s++) {
+    // Эта штука скидывает воображаемй курсор на начало файла
+
+    switch (s)
+    {
+    case 0:  printf("inensearch kakoe chislo: ");
+      scanf("%lf", &m);
+      bang = linei(csv, n, m);
+      if (bang == -1)
+        printf("error\n");
+      else
+        printf("schislo", bang);
+      break;
+    case 1: printf("interpolating Search- chislo: ");
+      scanf("%lf", &m);
+      interpolating(csv, n, m);
+      bang = interpolating(csv, n, m);
+      if (bang == -1)
+        printf("error\n");
+      else
+        printf("chislo", bang);
+      break;
+    case 2:printf("derevo Search- chislo: ");
+      scanf("%lf", &m);
+
+      int iz = 0;
+      clock_t start, end;
+      start = clock();
+      treeserch(root, m, &iz);
+      end = clock();
+      printf("do for:");
+      printf("%.4f sec\n", ((double)end - start) / ((double)CLOCKS_PER_SEC));
+
+
+    }
+
+
+
+  }
+
+  printf("Results:\n");
+  printf("       | Srav   Perem    \n");
+  printf("Bubble | %d  %d   %lf\n", results[0][0], results[0][1], times[0]);
+  printf("Insert | %d  %d   %lf\n", results[1][0], results[1][1], times[1]);
+  printf("Qsort  | %d  %d   %lf\n", results[2][0], results[2][1], times[2]);
+  printf("Tree   | %d  %d   %lf\n", results[3][0], results[3][1], times[3]);
+
+  //printf("\nN*N = %d\nN*logN = %d\n", n*n, n*(log10(n) / log10(2)));
+
+
+
+
+  system("pause");
+}
